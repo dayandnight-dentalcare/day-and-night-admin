@@ -1,97 +1,136 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { adminFetch } from "@/lib/api";
 import { Toolbar } from "@/components/shared/Toolbar";
 import { DataTable, Column } from "@/components/shared/DataTable";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
 
-interface CampaignHistory {
-  id: string;
-  fileName: string;
-  uploadDate: string;
-  totalTarget: number;
-  sentCount: number;
-  deliveredCount: number;
-  failedCount: number;
+interface Campaign {
+  id: number;
+  filename: string;
+  total_count: number;
+  created_at: string;
+  sent_count: number;
+  delivered_count: number;
+  failed_count: number;
+  pending_count: number;
 }
-
-const mockHistory: CampaignHistory[] = [
-  {
-    id: "CMP-001",
-    fileName: "implant_leads_may_2024.csv",
-    uploadDate: "2024-05-10 14:30",
-    totalTarget: 150,
-    sentCount: 150,
-    deliveredCount: 142,
-    failedCount: 8,
-  },
-  {
-    id: "CMP-002",
-    fileName: "general_checkup_reminders.xlsx",
-    uploadDate: "2024-04-28 09:15",
-    totalTarget: 420,
-    sentCount: 420,
-    deliveredCount: 405,
-    failedCount: 15,
-  },
-  {
-    id: "CMP-003",
-    fileName: "whitening_promo_q2.csv",
-    uploadDate: "2024-04-15 11:00",
-    totalTarget: 85,
-    sentCount: 85,
-    deliveredCount: 80,
-    failedCount: 5,
-  },
-];
 
 export default function CampaignHistoryPage() {
   const router = useRouter();
-  const [history] = useState<CampaignHistory[]>(mockHistory);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredHistory = history.filter(
-    (h) => h.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    adminFetch("/api/admin/stats")
+      .then((data) => setCampaigns(data.campaigns))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = campaigns.filter((c) =>
+    c.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRowClick = (campaign: CampaignHistory) => {
-    // Navigate to delivery status with some query params or state (mocked)
+  const handleRowClick = (campaign: Campaign) => {
     router.push(`/dashboard/campaign/delivery?campaignId=${campaign.id}`);
   };
 
-  const columns: Column<CampaignHistory>[] = [
-    { 
-      header: "File Name", 
-      accessorKey: "fileName", 
+  const columns: Column<Campaign>[] = [
+    {
+      header: "File Name",
+      accessorKey: "filename",
       cell: (item) => (
         <div className="flex items-center">
-          <FileSpreadsheet className="w-4 h-4 mr-2 text-slate-400" />
-          <span className="font-medium text-slate-900">{item.fileName}</span>
+          <FileSpreadsheet className="w-4 h-4 mr-2 text-slate-400 flex-shrink-0" />
+          <span className="font-medium text-slate-900">{item.filename}</span>
         </div>
-      ) 
+      ),
     },
-    { header: "Upload Date", accessorKey: "uploadDate", cell: (item) => <span className="text-slate-600">{item.uploadDate}</span> },
-    { header: "Total Target", accessorKey: "totalTarget", cell: (item) => <span className="font-mono text-slate-600">{item.totalTarget}</span> },
-    { header: "Sent", accessorKey: "sentCount", cell: (item) => <span className="font-mono text-blue-600 font-medium">{item.sentCount}</span> },
-    { header: "Delivered", accessorKey: "deliveredCount", cell: (item) => <span className="font-mono text-emerald-600 font-medium">{item.deliveredCount}</span> },
-    { header: "Failed", accessorKey: "failedCount", cell: (item) => <span className="font-mono text-rose-600 font-medium">{item.failedCount}</span> },
+    {
+      header: "Upload Date",
+      accessorKey: "created_at",
+      cell: (item) => (
+        <span className="text-slate-600">
+          {new Date(item.created_at).toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      ),
+    },
+    {
+      header: "Total",
+      accessorKey: "total_count",
+      cell: (item) => (
+        <span className="font-mono text-slate-600">{item.total_count}</span>
+      ),
+    },
+    {
+      header: "Sent",
+      accessorKey: "sent_count",
+      cell: (item) => (
+        <span className="font-mono text-blue-600 font-medium">
+          {item.sent_count}
+        </span>
+      ),
+    },
+    {
+      header: "Delivered",
+      accessorKey: "delivered_count",
+      cell: (item) => (
+        <span className="font-mono text-emerald-600 font-medium">
+          {item.delivered_count}
+        </span>
+      ),
+    },
+    {
+      header: "Failed",
+      accessorKey: "failed_count",
+      cell: (item) => (
+        <span className="font-mono text-rose-600 font-medium">
+          {item.failed_count}
+        </span>
+      ),
+    },
+    {
+      header: "Pending",
+      accessorKey: "pending_count",
+      cell: (item) => (
+        <span className="font-mono text-amber-600 font-medium">
+          {item.pending_count}
+        </span>
+      ),
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <Toolbar 
-        title="Campaign History" 
-        description="View past SMS/WhatsApp outreach campaigns."
+      <Toolbar
+        title="Campaign History"
+        description="View past WhatsApp outreach campaigns."
         onSearch={setSearchQuery}
         searchPlaceholder="Search file name..."
       />
 
-      <DataTable 
-        columns={columns} 
-        data={filteredHistory} 
-        onRowClick={handleRowClick}
-      />
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          onRowClick={handleRowClick}
+        />
+      )}
     </div>
   );
 }

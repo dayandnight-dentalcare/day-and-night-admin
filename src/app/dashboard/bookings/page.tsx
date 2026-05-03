@@ -1,132 +1,191 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { adminFetch } from "@/lib/api";
 import { Toolbar } from "@/components/shared/Toolbar";
 import { DataTable, Column } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SlideOver } from "@/components/shared/SlideOver";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Phone, Clock, FileText, CheckCircle, XCircle } from "lucide-react";
+import {
+  Calendar,
+  Phone,
+  Clock,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 
-type AppointmentStatus = "Pending" | "Confirmed" | "Completed" | "Cancelled";
-
-interface Appointment {
-  id: string;
-  patientName: string;
-  phone: string;
-  date: string;
-  time: string;
-  reason: string;
-  status: AppointmentStatus;
-  notes: string;
-  timestamp: string;
+interface Booking {
+  appointment_id: number;
+  reason: string | null;
+  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+  created_at: string;
+  patient_id: number;
+  patient_name: string;
+  patient_phone: string;
+  patient_email: string | null;
+  slot_id: number | null;
+  slot_date: string | null;
+  slot_time: string | null;
 }
 
-const mockAppointments: Appointment[] = [
-  {
-    id: "APT-2039",
-    patientName: "Sarah Jenkins",
-    phone: "+91 98765 43210",
-    date: "2024-05-15",
-    time: "10:00 AM",
-    reason: "Root Canal Follow-up",
-    status: "Confirmed",
-    notes: "Patient experiences slight pain when chewing. Needs x-ray before procedure.",
-    timestamp: "2024-05-10T09:30:00Z",
-  },
-  {
-    id: "APT-2040",
-    patientName: "Michael Chen",
-    phone: "+91 98765 43211",
-    date: "2024-05-15",
-    time: "11:30 AM",
-    reason: "General Cleaning",
-    status: "Pending",
-    notes: "First time visit. Mentioned sensitivity to cold.",
-    timestamp: "2024-05-12T14:15:00Z",
-  },
-  {
-    id: "APT-2041",
-    patientName: "Emily Rodriguez",
-    phone: "+91 98765 43212",
-    date: "2024-05-15",
-    time: "02:00 PM",
-    reason: "Teeth Whitening",
-    status: "Completed",
-    notes: "Procedure successful. Advised to avoid coffee for 48 hours.",
-    timestamp: "2024-05-08T11:00:00Z",
-  },
-  {
-    id: "APT-2042",
-    patientName: "David Kim",
-    phone: "+91 98765 43213",
-    date: "2024-05-16",
-    time: "09:00 AM",
-    reason: "Tooth Extraction",
-    status: "Cancelled",
-    notes: "Patient cancelled due to fever. Will reschedule next week.",
-    timestamp: "2024-05-13T16:45:00Z",
-  },
-];
-
 export default function BookingsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("All");
-  
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const filteredAppointments = appointments.filter((apt) => {
-    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          apt.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          apt.phone.includes(searchQuery);
-    const matchesStatus = statusFilter === "All" || apt.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const loadBookings = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const qs = statusFilter !== "All" ? `?status=${statusFilter}` : "";
+      const data = await adminFetch(`/api/admin/bookings${qs}`);
+      setBookings(data.bookings);
+    } catch (err: any) {
+      setError("Failed to load bookings. Please refresh.");
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
+
+  // Client-side search on top of server-side status filter
+  const filtered = bookings.filter((b) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      b.patient_name.toLowerCase().includes(q) ||
+      b.patient_phone.includes(q) ||
+      String(b.appointment_id).includes(q)
+    );
   });
 
-  const handleRowClick = (apt: Appointment) => {
-    setSelectedAppointment(apt);
+  const handleRowClick = (b: Booking) => {
+    setSelectedBooking(b);
     setIsSlideOverOpen(true);
   };
 
-  const updateAppointmentStatus = (id: string, newStatus: AppointmentStatus) => {
-    setAppointments(prev => 
-      prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt)
-    );
-    if (selectedAppointment && selectedAppointment.id === id) {
-      setSelectedAppointment({ ...selectedAppointment, status: newStatus });
+  const handleStatusUpdate = async (
+    id: number,
+    status: "Confirmed" | "Completed" | "Cancelled"
+  ) => {
+    setIsUpdating(true);
+    try {
+      await adminFetch("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({ id, status }),
+      });
+      // Update both the list and the open slideover instantly
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.appointment_id === id ? { ...b, status } : b
+        )
+      );
+      setSelectedBooking((prev) =>
+        prev && prev.appointment_id === id ? { ...prev, status } : prev
+      );
+    } catch (err: any) {
+      alert(err.message ?? "Failed to update status. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const columns: Column<Appointment>[] = [
-    { header: "ID", accessorKey: "id", cell: (item) => <span className="font-mono text-sm text-slate-500">{item.id}</span> },
-    { header: "Patient", accessorKey: "patientName", cell: (item) => <span className="font-medium text-slate-900">{item.patientName}</span> },
-    { header: "Phone", accessorKey: "phone", cell: (item) => <span className="text-slate-600">{item.phone}</span> },
-    { header: "Date", accessorKey: "date", cell: (item) => <span className="text-slate-600">{item.date}</span> },
-    { header: "Time", accessorKey: "time", cell: (item) => <span className="text-slate-600">{item.time}</span> },
-    { header: "Reason", accessorKey: "reason", cell: (item) => <span className="text-slate-600 truncate max-w-[150px] block">{item.reason}</span> },
-    { header: "Status", accessorKey: "status", cell: (item) => <StatusBadge status={item.status} /> },
+  const columns: Column<Booking>[] = [
+    {
+      header: "ID",
+      accessorKey: "appointment_id",
+      cell: (item) => (
+        <span className="font-mono text-sm text-slate-500">
+          #{item.appointment_id}
+        </span>
+      ),
+    },
+    {
+      header: "Patient",
+      accessorKey: "patient_name",
+      cell: (item) => (
+        <span className="font-medium text-slate-900">{item.patient_name}</span>
+      ),
+    },
+    {
+      header: "Phone",
+      accessorKey: "patient_phone",
+      cell: (item) => (
+        <span className="text-slate-600">{item.patient_phone}</span>
+      ),
+    },
+    {
+      header: "Date",
+      accessorKey: "slot_date",
+      cell: (item) =>
+        item.slot_date ? (
+          <span className="text-slate-600">
+            {new Date(item.slot_date).toLocaleDateString("en-IN", {
+              timeZone: "Asia/Kolkata",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        ) : (
+          <span className="text-slate-400 italic text-sm">TBD</span>
+        ),
+    },
+    {
+      header: "Time",
+      accessorKey: "slot_time",
+      cell: (item) =>
+        item.slot_time ? (
+          <span className="text-slate-600">{item.slot_time}</span>
+        ) : (
+          <span className="text-slate-400 italic text-sm">Pending</span>
+        ),
+    },
+    {
+      header: "Reason",
+      accessorKey: "reason",
+      cell: (item) => (
+        <span className="text-slate-600 truncate max-w-[160px] block">
+          {item.reason ?? "—"}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      accessorKey: "status",
+      cell: (item) => <StatusBadge status={item.status} />,
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <Toolbar 
-        title="Bookings" 
-        description="Manage patient appointments and daily schedules."
+      <Toolbar
+        title="Bookings"
+        description="Live appointment feed from WhatsApp."
         onSearch={setSearchQuery}
-        searchPlaceholder="Search patients or ID..."
+        searchPlaceholder="Search by patient name, phone, or ID..."
         filters={
-          <Select value={statusFilter} onValueChange={(value) => value && setStatusFilter(value)}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => v && setStatusFilter(v)}
+          >
             <SelectTrigger className="w-[150px] bg-white">
               <SelectValue placeholder="Filter Status" />
             </SelectTrigger>
@@ -139,113 +198,174 @@ export default function BookingsPage() {
             </SelectContent>
           </Select>
         }
-        actions={
-          <Button className="bg-primary hover:bg-primary/90">
-            <Calendar className="mr-2 h-4 w-4" />
-            New Booking
-          </Button>
-        }
       />
 
-      <DataTable 
-        columns={columns} 
-        data={filteredAppointments} 
-        onRowClick={handleRowClick}
-      />
+      {error && (
+        <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary" />
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          onRowClick={handleRowClick}
+        />
+      )}
 
       <SlideOver
         open={isSlideOverOpen}
         onOpenChange={setIsSlideOverOpen}
         title="Appointment Details"
-        description={selectedAppointment ? `ID: ${selectedAppointment.id}` : ""}
+        description={
+          selectedBooking
+            ? `Appointment #${selectedBooking.appointment_id}`
+            : ""
+        }
       >
-        {selectedAppointment && (
+        {selectedBooking && (
           <div className="space-y-6">
+            {/* Patient header */}
             <div className="flex items-center justify-between pb-4 border-b">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{selectedAppointment.patientName}</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {selectedBooking.patient_name}
+                </h3>
                 <div className="flex items-center text-sm text-slate-500 mt-1">
                   <Phone className="w-3.5 h-3.5 mr-1.5" />
-                  {selectedAppointment.phone}
+                  {selectedBooking.patient_phone}
                 </div>
+                {selectedBooking.patient_email && (
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    {selectedBooking.patient_email}
+                  </p>
+                )}
               </div>
-              <StatusBadge status={selectedAppointment.status} />
+              <StatusBadge status={selectedBooking.status} />
             </div>
 
+            {/* Date + Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <div className="text-xs text-slate-500 mb-1 flex items-center">
                   <Calendar className="w-3.5 h-3.5 mr-1" /> Date
                 </div>
-                <div className="font-medium text-slate-900">{selectedAppointment.date}</div>
+                <div className="font-medium text-slate-900">
+                  {selectedBooking.slot_date
+                    ? new Date(selectedBooking.slot_date).toLocaleDateString(
+                        "en-IN",
+                        {
+                          timeZone: "Asia/Kolkata",
+                          weekday: "short",
+                          day: "numeric",
+                          month: "long",
+                        }
+                      )
+                    : "Not selected yet"}
+                </div>
               </div>
               <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <div className="text-xs text-slate-500 mb-1 flex items-center">
                   <Clock className="w-3.5 h-3.5 mr-1" /> Time
                 </div>
-                <div className="font-medium text-slate-900">{selectedAppointment.time}</div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-slate-900 mb-2 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-primary" /> Reason for Visit
-                </h4>
-                <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm text-sm text-slate-700">
-                  {selectedAppointment.reason}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-slate-900 mb-2 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-primary" /> Notes
-                </h4>
-                <div className="p-3 bg-slate-100 rounded-xl text-sm text-slate-700">
-                  {selectedAppointment.notes || "No notes available."}
+                <div className="font-medium text-slate-900">
+                  {selectedBooking.slot_time ?? "Not selected yet"}
                 </div>
               </div>
             </div>
 
-            <div className="pt-6 border-t space-y-3">
-              <h4 className="text-sm font-medium text-slate-900 mb-2">Actions</h4>
-              
-              {selectedAppointment.status === "Pending" && (
-                <Button 
-                  className="w-full justify-start bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-200 border"
+            {/* Reason */}
+            <div>
+              <h4 className="text-sm font-medium text-slate-900 mb-2 flex items-center">
+                <FileText className="w-4 h-4 mr-2 text-primary" />
+                Reason for Visit
+              </h4>
+              <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm text-sm text-slate-700">
+                {selectedBooking.reason ?? "No reason provided."}
+              </div>
+            </div>
+
+            {/* Booked at */}
+            <p className="text-xs text-center text-slate-400">
+              Booked on{" "}
+              {new Date(selectedBooking.created_at).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+              })}
+            </p>
+
+            {/* Action buttons */}
+            <div className="pt-4 border-t space-y-3">
+              <h4 className="text-sm font-medium text-slate-900">Actions</h4>
+
+              {selectedBooking.status === "Pending" && (
+                <Button
+                  className="w-full justify-start bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 border"
                   variant="outline"
-                  onClick={() => updateAppointmentStatus(selectedAppointment.id, "Confirmed")}
+                  disabled={isUpdating}
+                  onClick={() =>
+                    handleStatusUpdate(
+                      selectedBooking.appointment_id,
+                      "Confirmed"
+                    )
+                  }
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {isUpdating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
                   Confirm Appointment
                 </Button>
               )}
-              
-              {(selectedAppointment.status === "Pending" || selectedAppointment.status === "Confirmed") && (
-                <Button 
-                  className="w-full justify-start bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border-blue-200 border"
+
+              {(selectedBooking.status === "Pending" ||
+                selectedBooking.status === "Confirmed") && (
+                <Button
+                  className="w-full justify-start bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 border"
                   variant="outline"
-                  onClick={() => updateAppointmentStatus(selectedAppointment.id, "Completed")}
+                  disabled={isUpdating}
+                  onClick={() =>
+                    handleStatusUpdate(
+                      selectedBooking.appointment_id,
+                      "Completed"
+                    )
+                  }
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {isUpdating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
                   Mark as Completed
                 </Button>
               )}
 
-              {selectedAppointment.status !== "Cancelled" && selectedAppointment.status !== "Completed" && (
-                <Button 
-                  className="w-full justify-start bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 border-rose-200 border"
-                  variant="outline"
-                  onClick={() => updateAppointmentStatus(selectedAppointment.id, "Cancelled")}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Cancel Appointment
-                </Button>
-              )}
-              
-              <div className="text-xs text-center text-slate-400 mt-4 pt-4">
-                Booked on {new Date(selectedAppointment.timestamp).toLocaleString()}
-              </div>
+              {selectedBooking.status !== "Cancelled" &&
+                selectedBooking.status !== "Completed" && (
+                  <Button
+                    className="w-full justify-start bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 border"
+                    variant="outline"
+                    disabled={isUpdating}
+                    onClick={() =>
+                      handleStatusUpdate(
+                        selectedBooking.appointment_id,
+                        "Cancelled"
+                      )
+                    }
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4 mr-2" />
+                    )}
+                    Cancel Appointment
+                  </Button>
+                )}
             </div>
           </div>
         )}

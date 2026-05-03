@@ -3,7 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Stethoscope, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,21 +21,37 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Mock authentication: hardcoded password "admin123"
-    setTimeout(() => {
-      if (password === "admin123") {
-        localStorage.setItem("adminAuth", "true");
+    try {
+      // Verify password by hitting a real backend admin route.
+      // If the secret is wrong, backend returns 401.
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/stats`,
+        { headers: { Authorization: `Bearer ${password}` } }
+      );
+
+if (res.ok) {
+        // 1. Store the actual password for API calls
+        sessionStorage.setItem("adminSecret", password);
+        
+        // 2. Set a cookie so the Next.js Middleware lets you into the dashboard
+        // This cookie expires in 1 day (86400 seconds)
+        document.cookie = "adminAuth=true; path=/; max-age=86400; samesite=strict";
+        
+        // 3. Enter the dashboard
         router.push("/dashboard/bookings");
       } else {
-        setError("Invalid admin secret.");
-        setIsLoading(false);
+        setError("Invalid admin secret. Please try again.");
       }
-    }, 1000);
+    } catch {
+      setError("Could not reach the server. Check your connection.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,6 +68,7 @@ export default function LoginPage() {
             Enter your admin secret to access the management portal.
           </CardDescription>
         </CardHeader>
+
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -56,17 +80,26 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className={error ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={
+                  error
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
                 required
               />
-              {error && <p className="text-sm text-destructive font-medium mt-1">{error}</p>}
+              {error && (
+                <p className="text-sm text-destructive font-medium mt-1">
+                  {error}
+                </p>
+              )}
             </div>
           </CardContent>
+
           <CardFooter>
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base py-5"
-              disabled={isLoading}
+              disabled={isLoading || password.length === 0}
             >
               {isLoading ? (
                 <>
@@ -80,11 +113,6 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
-      
-      {/* Mock hint */}
-      <div className="fixed bottom-4 right-4 bg-white p-3 rounded-lg shadow border text-xs text-slate-500">
-        Hint: Password is <strong>admin123</strong>
-      </div>
     </div>
   );
 }

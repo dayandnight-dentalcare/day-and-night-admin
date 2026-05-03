@@ -1,148 +1,180 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { adminFetch } from "@/lib/api";
 import { Toolbar } from "@/components/shared/Toolbar";
 import { FileDropzone } from "@/components/shared/FileDropzone";
-import { DataTable, Column } from "@/components/shared/DataTable";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Play, Upload } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Upload, Loader2, CheckCircle2, Send } from "lucide-react";
 
-interface ParsedRow {
-  id: number;
-  name: string;
-  phone: string;
-  disease: string;
-  isValid: boolean;
-  errors: string[];
+type UploadState = "idle" | "uploading" | "done" | "error";
+
+interface UploadResult {
+  campaign_id: number;
+  total_queued: number;
+  skipped: number;
 }
 
 export default function UploadCampaignPage() {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [result, setResult] = useState<UploadResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleFileAccepted = (acceptedFile: File) => {
-    setFile(acceptedFile);
-    
-    // Mock parsing the file
-    setIsUploading(true);
-    setTimeout(() => {
-      const mockParsedData: ParsedRow[] = [
-        { id: 1, name: "John Doe", phone: "+91 9876543210", disease: "Root Canal", isValid: true, errors: [] },
-        { id: 2, name: "Jane Smith", phone: "98765432", disease: "Teeth Whitening", isValid: false, errors: ["Malformed phone (needs 10 digits)"] },
-        { id: 3, name: "Robert Wilson", phone: "+91 9988776655", disease: "Extraction", isValid: true, errors: [] },
-        { id: 4, name: "", phone: "+91 9876500000", disease: "Checkup", isValid: false, errors: ["Missing name"] },
-        { id: 5, name: "Alice Brown", phone: "+91 9123456789", disease: "", isValid: false, errors: ["Missing disease/concern"] },
-        { id: 6, name: "Charlie Davis", phone: "+91 9999988888", disease: "Implants", isValid: true, errors: [] },
-      ];
-      setParsedData(mockParsedData);
-      setIsUploading(false);
-    }, 1500);
+  const handleFileAccepted = async (file: File) => {
+    setUploadState("uploading");
+    setResult(null);
+    setErrorMsg("");
+
+    try {
+      // Send file directly to backend — backend does all parsing and validation
+      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+      const secret =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("adminSecret") ?? ""
+          : "";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(
+        `${BACKEND_URL}/api/admin/outreach/upload`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${secret}` },
+          // Do NOT set Content-Type — browser sets it automatically with boundary for FormData
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error ?? "Upload failed.");
+
+      setResult(data);
+      setUploadState("done");
+    } catch (err: any) {
+      setErrorMsg(err.message ?? "Something went wrong.");
+      setUploadState("error");
+    }
   };
 
-  const handleConfirmQueue = () => {
-    // Mock queuing the campaign
-    alert(`Queued ${validCount} valid contacts for campaign!`);
-    router.push("/dashboard/campaign/history");
+  const handleReset = () => {
+    setUploadState("idle");
+    setResult(null);
+    setErrorMsg("");
   };
-
-  const validCount = parsedData.filter(d => d.isValid).length;
-  const invalidCount = parsedData.length - validCount;
-
-  const columns: Column<ParsedRow>[] = [
-    { 
-      header: "Status", 
-      accessorKey: "isValid", 
-      cell: (item) => (
-        item.isValid ? 
-          <CheckCircle2 className="text-emerald-500 w-5 h-5" /> : 
-          <AlertCircle className="text-rose-500 w-5 h-5" />
-      )
-    },
-    { header: "Name", accessorKey: "name", cell: (item) => <span className={!item.name ? "text-rose-500 italic" : "text-slate-900"}>{item.name || "Missing"}</span> },
-    { header: "Phone", accessorKey: "phone", cell: (item) => <span className={item.errors.some(e => e.includes("phone")) ? "text-rose-500 font-medium" : "text-slate-600"}>{item.phone}</span> },
-    { header: "Disease / Concern", accessorKey: "disease", cell: (item) => <span className={!item.disease ? "text-rose-500 italic" : "text-slate-600"}>{item.disease || "Missing"}</span> },
-    { 
-      header: "Issues", 
-      accessorKey: "errors", 
-      cell: (item) => (
-        <span className="text-rose-600 text-xs">
-          {item.errors.join(", ")}
-        </span>
-      ) 
-    },
-  ];
 
   return (
     <div className="space-y-6 pb-20">
-      <Toolbar 
-        title="Upload Outreach Campaign" 
-        description="Upload a CSV or XLSX file to queue an SMS/WhatsApp campaign."
+      <Toolbar
+        title="Upload Outreach Campaign"
+        description="Upload an XLSX or XLS file to queue a WhatsApp outreach campaign."
       />
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
+      {/* File format instructions */}
+      <Card className="border-slate-200 shadow-sm">
         <div className="bg-slate-50 border-b p-4 px-6">
-          <h3 className="font-semibold text-slate-800 flex items-center">
-            <Upload className="w-4 h-4 mr-2 text-primary" />
-            File Upload
+          <h3 className="font-semibold text-slate-800 text-sm">
+            Required Excel Format
           </h3>
         </div>
-        <CardContent className="p-6">
-          <FileDropzone onFileAccepted={handleFileAccepted} />
+        <CardContent className="p-4 px-6">
+          <p className="text-sm text-slate-600">
+            Your file must contain exactly these three column headers (case-insensitive):
+          </p>
+          <div className="flex gap-3 mt-3">
+            {["Name", "Mobile", "Disease"].map((col) => (
+              <span
+                key={col}
+                className="px-3 py-1 bg-slate-100 text-slate-700 text-sm font-mono rounded-md border border-slate-200"
+              >
+                {col}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-3">
+            Maximum 500 rows per upload. Mobile must be a valid 10-digit Indian number.
+          </p>
         </CardContent>
       </Card>
 
-      {isUploading && (
-        <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
-          <p>Parsing dataset...</p>
+      {/* Upload zone — only show when idle or error */}
+      {(uploadState === "idle" || uploadState === "error") && (
+        <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-slate-50 border-b p-4 px-6">
+            <h3 className="font-semibold text-slate-800 flex items-center">
+              <Upload className="w-4 h-4 mr-2 text-primary" />
+              File Upload
+            </h3>
+          </div>
+          <CardContent className="p-6">
+            <FileDropzone onFileAccepted={handleFileAccepted} />
+            {uploadState === "error" && (
+              <p className="mt-4 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3">
+                {errorMsg}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Uploading spinner */}
+      {uploadState === "uploading" && (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+          <p className="font-medium">Uploading and processing your file...</p>
+          <p className="text-sm text-slate-400 mt-1">
+            The server is validating numbers and queuing messages.
+          </p>
         </div>
       )}
 
-      {!isUploading && parsedData.length > 0 && (
+      {/* Success state */}
+      {uploadState === "done" && result && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-sm font-medium text-slate-500 mb-1">Total Rows</span>
-              <span className="text-3xl font-bold text-slate-900">{parsedData.length}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-6 flex flex-col items-center">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
+              <span className="text-sm font-medium text-emerald-700 mb-1">
+                Queued for Sending
+              </span>
+              <span className="text-4xl font-bold text-emerald-700">
+                {result.total_queued}
+              </span>
             </div>
-            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-sm font-medium text-emerald-700 mb-1">Valid Records</span>
-              <span className="text-3xl font-bold text-emerald-700">{validCount}</span>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-6 flex flex-col items-center">
+              <span className="text-sm font-medium text-amber-700 mb-1">
+                Skipped
+              </span>
+              <span className="text-4xl font-bold text-amber-700">
+                {result.skipped}
+              </span>
+              <span className="text-xs text-amber-600 mt-1 text-center">
+                Invalid numbers, duplicates, or opted-out patients
+              </span>
             </div>
-            <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 shadow-sm flex flex-col justify-center items-center">
-              <span className="text-sm font-medium text-rose-700 mb-1">Invalid Records</span>
-              <span className="text-3xl font-bold text-rose-700">{invalidCount}</span>
-            </div>
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col justify-center items-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-primary/10 w-0 group-hover:w-full transition-all duration-300 ease-out" />
-              <button onClick={handleConfirmQueue} disabled={validCount === 0} className="relative z-10 flex flex-col items-center disabled:opacity-50 disabled:cursor-not-allowed">
-                <span className="text-sm font-medium text-primary mb-1">Action</span>
-                <span className="text-lg font-bold text-primary flex items-center">
-                  <Play className="w-5 h-5 mr-1" fill="currentColor" />
-                  Queue Campaign
-                </span>
-              </button>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col items-center">
+              <Send className="w-8 h-8 text-slate-400 mb-2" />
+              <span className="text-sm font-medium text-slate-600 mb-1">
+                Messages will send over the next few minutes via the cron job.
+              </span>
             </div>
           </div>
 
-          <Card className="border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-slate-50 border-b p-4 px-6 flex justify-between items-center">
-              <h3 className="font-semibold text-slate-800">Data Preview</h3>
-              <span className="text-xs text-slate-500">Showing {parsedData.length} rows</span>
-            </div>
-            <DataTable 
-              columns={columns} 
-              data={parsedData} 
-            />
-          </Card>
-          
-          <div className="flex justify-end pt-4">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-medium" onClick={handleConfirmQueue} disabled={validCount === 0}>
-              Confirm & Queue Campaign
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={handleReset}>
+              Upload Another File
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary/90 text-white"
+              onClick={() => router.push("/dashboard/campaign/history")}
+            >
+              View Campaign History
             </Button>
           </div>
         </div>
