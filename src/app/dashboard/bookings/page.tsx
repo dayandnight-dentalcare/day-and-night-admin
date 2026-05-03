@@ -162,7 +162,7 @@ export default function BookingsPage() {
       header: "Reason",
       accessorKey: "reason",
       cell: (item) => (
-        <span className="text-slate-600 truncate max-w-[160px] block">
+        <span className="text-slate-600 truncate max-w-40 block">
           {item.reason ?? "—"}
         </span>
       ),
@@ -186,7 +186,7 @@ export default function BookingsPage() {
             value={statusFilter}
             onValueChange={(v) => v && setStatusFilter(v)}
           >
-            <SelectTrigger className="w-[150px] bg-white">
+            <SelectTrigger className="w-37.5 bg-white">
               <SelectValue placeholder="Filter Status" />
             </SelectTrigger>
             <SelectContent>
