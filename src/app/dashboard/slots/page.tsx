@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2, Plus, Ban, CheckCircle } from "lucide-react";
+import { Loader2, Trash2, Plus, Ban, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Slot {
@@ -25,13 +25,11 @@ export default function SlotManagerPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  // Add Slot State
-  const [newTime, setNewTime] = useState("09:00");
+
+  const [newTime, setNewTime] = useState("09:30");
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState("");
 
-  // Block Day State
   const [isDateBlocked, setIsDateBlocked] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [blockId, setBlockId] = useState<number | null>(null);
@@ -41,12 +39,11 @@ export default function SlotManagerPage() {
     setLoading(true);
     setError("");
     try {
-      // Fetch Slots and Block Status simultaneously
       const [slotsData, blockData] = await Promise.all([
         adminFetch(`/api/admin/slots?date=${date}`),
-        adminFetch(`/api/admin/block?date=${date}`)
+        adminFetch(`/api/admin/block?date=${date}`),
       ]);
-      
+
       setSlots(slotsData.slots || []);
 
       if (blockData.date_blocked) {
@@ -58,7 +55,7 @@ export default function SlotManagerPage() {
         setBlockId(null);
         setBlockReason("");
       }
-    } catch (err: any) {
+    } catch {
       setError("Failed to load data. Please try again.");
     } finally {
       setLoading(false);
@@ -103,16 +100,14 @@ export default function SlotManagerPage() {
     setIsTogglingBlock(true);
     try {
       if (isDateBlocked && blockId) {
-        // UNBLOCK THE DAY
         await adminFetch("/api/admin/block", {
           method: "DELETE",
           body: JSON.stringify({ type: "date", id: blockId }),
         });
       } else {
-        // BLOCK THE DAY
         await adminFetch("/api/admin/block", {
           method: "POST",
-          body: JSON.stringify({ type: "date", date, reason: blockReason }),
+          body: JSON.stringify({ type: "date", date, reason: blockReason || null }),
         });
       }
       await fetchDayData();
@@ -126,6 +121,13 @@ export default function SlotManagerPage() {
   const availableCount = slots.filter((s) => !s.is_booked).length;
   const bookedCount = slots.filter((s) => s.is_booked).length;
 
+  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="space-y-6">
       <Toolbar
@@ -133,117 +135,148 @@ export default function SlotManagerPage() {
         description="Manage daily appointment availability and clinic closures."
       />
 
-      {/* ── Block Day Banner ── */}
-      <Card className={cn(
-        "border transition-colors",
-        isDateBlocked ? "bg-rose-50 border-rose-200" : "bg-white border-slate-200"
-      )}>
-        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className={cn("text-lg font-bold flex items-center gap-2", isDateBlocked ? "text-rose-800" : "text-slate-900")}>
-              {isDateBlocked ? <Ban size={20} /> : <CheckCircle size={20} className="text-emerald-500" />}
-              {isDateBlocked ? "Clinic is Closed on this Date" : "Clinic is Open for Bookings"}
-            </h3>
-            <p className={cn("text-sm mt-1", isDateBlocked ? "text-rose-600" : "text-slate-500")}>
-              {isDateBlocked 
-                ? `Reason: ${blockReason || "None provided"}` 
-                : "Patients can view and book available slots for this day."}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {!isDateBlocked && (
-              <Input 
-                placeholder="Reason (e.g. Holiday)" 
-                value={blockReason}
-                onChange={(e) => setBlockReason(e.target.value)}
-                className="w-full sm:w-48 bg-white"
+        {/* ── Left column: date picker + add slot + block controls ── */}
+        <div className="space-y-4">
+
+          {/* Date picker card */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Select Date</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full"
               />
-            )}
-            <Button
-              onClick={toggleBlockDay}
-              disabled={isTogglingBlock}
-              className={cn(
-                "font-medium whitespace-nowrap",
-                isDateBlocked 
-                  ? "bg-white text-rose-700 hover:bg-rose-100 border border-rose-200" 
-                  : "bg-rose-600 text-white hover:bg-rose-700"
-              )}
-            >
-              {isTogglingBlock ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {isDateBlocked ? "Unblock Day" : "Block Entire Day"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ── Left: Add slot form ── */}
-        <Card className={cn("border-slate-200 shadow-sm h-fit transition-opacity", isDateBlocked && "opacity-50 pointer-events-none grayscale")}>
-          <CardHeader>
-            <CardTitle className="text-base">Add a Slot</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddSlot} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  min={new Date().toLocaleDateString("en-CA", {
-                    timeZone: "Asia/Kolkata",
-                  })}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                />
-              </div>
-
-              {addError && (
-                <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                  {addError}
-                </p>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-slate-900 text-white hover:bg-slate-800"
-                disabled={isAdding || isDateBlocked}
-              >
-                {isAdding ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
+          {/* Add slot card — disabled when day is blocked */}
+          <Card className={cn(
+            "border-slate-200 shadow-sm transition-all",
+            isDateBlocked && "opacity-40 pointer-events-none select-none"
+          )}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Add a Slot</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddSlot} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="time">Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={newTime}
+                    onChange={(e) => setNewTime(e.target.value)}
+                  />
+                </div>
+                {addError && (
+                  <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                    {addError}
+                  </p>
                 )}
-                {isAdding ? "Adding..." : "Add Slot"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                <Button
+                  type="submit"
+                  className="w-full bg-slate-900 text-white hover:bg-slate-800"
+                  disabled={isAdding}
+                >
+                  {isAdding ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  {isAdding ? "Adding..." : "Add Slot"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
-        {/* ── Right: Slots grid ── */}
+          {/* Block / unblock day card */}
+          <Card className={cn(
+            "border shadow-sm transition-colors",
+            isDateBlocked
+              ? "border-rose-200 bg-rose-50"
+              : "border-slate-200 bg-white"
+          )}>
+            <CardHeader className="pb-3">
+              <CardTitle className={cn(
+                "text-base flex items-center gap-2",
+                isDateBlocked ? "text-rose-800" : "text-slate-900"
+              )}>
+                {isDateBlocked
+                  ? <><Ban className="w-4 h-4" /> Day is Blocked</>
+                  : <><CalendarCheck className="w-4 h-4 text-emerald-500" /> Day is Open</>
+                }
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isDateBlocked ? (
+                <>
+                  {blockReason && (
+                    <p className="text-sm text-rose-700">
+                      Reason: <span className="font-medium">{blockReason}</span>
+                    </p>
+                  )}
+                  <Button
+                    onClick={toggleBlockDay}
+                    disabled={isTogglingBlock}
+                    className="w-full bg-white text-rose-700 hover:bg-rose-100 border border-rose-200"
+                    variant="outline"
+                  >
+                    {isTogglingBlock
+                      ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      : null}
+                    Unblock This Day
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="blockReason">Reason (optional)</Label>
+                    <Input
+                      id="blockReason"
+                      placeholder="e.g. Public holiday"
+                      value={blockReason}
+                      onChange={(e) => setBlockReason(e.target.value)}
+                      className="bg-white"
+                    />
+                  </div>
+                  <Button
+                    onClick={toggleBlockDay}
+                    disabled={isTogglingBlock}
+                    className="w-full bg-rose-600 text-white hover:bg-rose-700"
+                  >
+                    {isTogglingBlock
+                      ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      : <Ban className="w-4 h-4 mr-2" />}
+                    Block Entire Day
+                  </Button>
+                  <p className="text-xs text-slate-400 text-center">
+                    Patients will be told the clinic is closed on this day.
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Right column: slots grid ── */}
         <Card className="lg:col-span-2 border-slate-200 shadow-sm">
           <CardHeader className="pb-4 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">
-                Slots for{" "}
-                {new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </CardTitle>
-              {slots.length > 0 && (
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <CardTitle className="text-base">{formattedDate}</CardTitle>
+                {isDateBlocked && (
+                  <p className="text-xs text-rose-500 mt-0.5 font-medium">
+                    ⛔ Clinic closed — patients cannot book this day
+                  </p>
+                )}
+              </div>
+              {slots.length > 0 && !isDateBlocked && (
                 <div className="flex gap-3 text-xs text-slate-500">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
@@ -273,11 +306,17 @@ export default function SlotManagerPage() {
               <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                 <p className="font-medium">No slots for this date.</p>
                 <p className="text-sm mt-1">
-                  Use the form to add time slots.
+                  {isDateBlocked
+                    ? "Unblock the day first, then add slots."
+                    : "Use the form on the left to add time slots."}
                 </p>
               </div>
             ) : (
-              <div className={cn("grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 transition-opacity", isDateBlocked && "opacity-40 grayscale pointer-events-none")}>
+              /* Slots always visible — just dimmed when blocked, not disabled */
+              <div className={cn(
+                "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 transition-opacity duration-300",
+                isDateBlocked && "opacity-30"
+              )}>
                 {slots.map((slot) => (
                   <div
                     key={slot.id}
@@ -288,14 +327,10 @@ export default function SlotManagerPage() {
                         : "bg-emerald-50 border-emerald-200"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "font-bold text-sm",
-                        slot.is_booked
-                          ? "text-amber-800"
-                          : "text-emerald-800"
-                      )}
-                    >
+                    <span className={cn(
+                      "font-bold text-sm",
+                      slot.is_booked ? "text-amber-800" : "text-emerald-800"
+                    )}>
                       {slot.time}
                     </span>
 
@@ -315,14 +350,16 @@ export default function SlotManagerPage() {
                         <span className="text-[10px] uppercase font-semibold text-emerald-600 mt-0.5">
                           Open
                         </span>
-                        {/* Delete button — only on available slots, appears on hover */}
-                        <button
-                          onClick={() => handleDelete(slot.id)}
-                          className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-sm border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Delete slot"
-                        >
-                          <Trash2 className="w-3 h-3 text-rose-500" />
-                        </button>
+                        {/* Only show delete when day is not blocked */}
+                        {!isDateBlocked && (
+                          <button
+                            onClick={() => handleDelete(slot.id)}
+                            className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-sm border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete slot"
+                          >
+                            <Trash2 className="w-3 h-3 text-rose-500" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
