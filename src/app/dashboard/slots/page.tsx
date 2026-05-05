@@ -150,7 +150,7 @@ export default function SlotManagerPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full"
+                className="w-full text-base md:text-sm h-12 md:h-10"
               />
             </CardContent>
           </Card>
@@ -172,6 +172,7 @@ export default function SlotManagerPage() {
                     type="time"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
+                    className="text-base md:text-sm h-12 md:h-10"
                   />
                 </div>
                 {addError && (
@@ -181,7 +182,7 @@ export default function SlotManagerPage() {
                 )}
                 <Button
                   type="submit"
-                  className="w-full bg-slate-900 text-white hover:bg-slate-800"
+                  className="w-full bg-slate-900 text-white hover:bg-slate-800 h-12 md:h-10 text-base md:text-sm"
                   disabled={isAdding}
                 >
                   {isAdding ? (
@@ -224,7 +225,7 @@ export default function SlotManagerPage() {
                   <Button
                     onClick={toggleBlockDay}
                     disabled={isTogglingBlock}
-                    className="w-full bg-white text-rose-700 hover:bg-rose-100 border border-rose-200"
+                    className="w-full bg-white text-rose-700 hover:bg-rose-100 border border-rose-200 h-12 md:h-10 text-base md:text-sm"
                     variant="outline"
                   >
                     {isTogglingBlock
@@ -242,13 +243,13 @@ export default function SlotManagerPage() {
                       placeholder="e.g. Public holiday"
                       value={blockReason}
                       onChange={(e) => setBlockReason(e.target.value)}
-                      className="bg-white"
+                      className="bg-white text-base md:text-sm h-12 md:h-10"
                     />
                   </div>
                   <Button
                     onClick={toggleBlockDay}
                     disabled={isTogglingBlock}
-                    className="w-full bg-rose-600 text-white hover:bg-rose-700"
+                    className="w-full bg-rose-600 text-white hover:bg-rose-700 h-12 md:h-10 text-base md:text-sm"
                   >
                     {isTogglingBlock
                       ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />

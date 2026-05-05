@@ -129,6 +129,44 @@ export default function CampaignHistoryPage() {
           columns={columns}
           data={filtered}
           onRowClick={handleRowClick}
+          mobileRenderer={(item) => (
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div>
+                <div className="flex items-center text-slate-900 font-medium mb-1">
+                  <FileSpreadsheet className="w-4 h-4 mr-2 text-primary" />
+                  {item.filename}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {new Date(item.created_at).toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-50 text-center">
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-slate-400">Total</p>
+                  <p className="font-mono text-sm text-slate-700">{item.total_count}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-blue-500">Sent</p>
+                  <p className="font-mono text-sm text-blue-700">{item.sent_count}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-emerald-500">Delivered</p>
+                  <p className="font-mono text-sm text-emerald-700">{item.delivered_count}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-rose-500">Failed</p>
+                  <p className="font-mono text-sm text-rose-700">{item.failed_count}</p>
+                </div>
+              </div>
+            </div>
+          )}
         />
       )}
     </div>

@@ -166,12 +166,12 @@ export default function UploadCampaignPage() {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={handleReset}>
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end mt-4">
+            <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto h-12 md:h-10 text-base md:text-sm">
               Upload Another File
             </Button>
             <Button
-              className="bg-primary hover:bg-primary/90 text-white"
+              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white h-12 md:h-10 text-base md:text-sm"
               onClick={() => router.push("/dashboard/campaign/history")}
             >
               View Campaign History

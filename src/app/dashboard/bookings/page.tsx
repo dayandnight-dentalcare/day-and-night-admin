@@ -186,7 +186,7 @@ export default function BookingsPage() {
             value={statusFilter}
             onValueChange={(v) => v && setStatusFilter(v)}
           >
-            <SelectTrigger className="w-37.5 bg-white">
+            <SelectTrigger className="w-full md:w-[150px] bg-white text-base md:text-sm h-12 md:h-10">
               <SelectValue placeholder="Filter Status" />
             </SelectTrigger>
             <SelectContent>
@@ -215,6 +215,41 @@ export default function BookingsPage() {
           columns={columns}
           data={filtered}
           onRowClick={handleRowClick}
+          mobileRenderer={(item) => (
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-slate-900">{item.patient_name}</h3>
+                  <div className="flex items-center text-sm text-slate-500 mt-1">
+                    <Phone className="w-3.5 h-3.5 mr-1.5" />
+                    {item.patient_phone}
+                  </div>
+                </div>
+                <StatusBadge status={item.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
+                <div className="flex items-center text-sm text-slate-600">
+                  <Calendar className="w-4 h-4 mr-2 text-slate-400" />
+                  {item.slot_date
+                    ? new Date(item.slot_date).toLocaleDateString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "TBD"}
+                </div>
+                <div className="flex items-center text-sm text-slate-600">
+                  <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                  {item.slot_time ?? "Pending"}
+                </div>
+              </div>
+              <div className="text-sm text-slate-600 pt-2 border-t border-slate-50 flex items-start">
+                <FileText className="w-4 h-4 mr-2 text-slate-400 shrink-0 mt-0.5" />
+                <span className="truncate">{item.reason ?? "No reason provided"}</span>
+              </div>
+            </div>
+          )}
         />
       )}
 
@@ -304,7 +339,7 @@ export default function BookingsPage() {
 
               {selectedBooking.status === "Pending" && (
                 <Button
-                  className="w-full justify-start bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 border"
+                  className="w-full justify-start bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 border h-12 md:h-10 text-base md:text-sm"
                   variant="outline"
                   disabled={isUpdating}
                   onClick={() =>
@@ -326,7 +361,7 @@ export default function BookingsPage() {
               {(selectedBooking.status === "Pending" ||
                 selectedBooking.status === "Confirmed") && (
                 <Button
-                  className="w-full justify-start bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 border"
+                  className="w-full justify-start bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 border h-12 md:h-10 text-base md:text-sm"
                   variant="outline"
                   disabled={isUpdating}
                   onClick={() =>
@@ -348,7 +383,7 @@ export default function BookingsPage() {
               {selectedBooking.status !== "Cancelled" &&
                 selectedBooking.status !== "Completed" && (
                   <Button
-                    className="w-full justify-start bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 border"
+                    className="w-full justify-start bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 border h-12 md:h-10 text-base md:text-sm"
                     variant="outline"
                     disabled={isUpdating}
                     onClick={() =>

@@ -139,7 +139,27 @@ function DeliveryStatusContent() {
             />
           </div>
 
-          <DataTable columns={columns} data={filtered} />
+          <DataTable
+            columns={columns}
+            data={filtered}
+            mobileRenderer={(item) => (
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-slate-900">{item.patient_name}</h3>
+                    <div className="text-sm text-slate-500 mt-0.5">
+                      {item.phone}
+                    </div>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </div>
+                <div className="pt-2 border-t border-slate-50">
+                  <p className="text-xs text-slate-500 mb-0.5">Disease / Concern</p>
+                  <p className="text-sm font-medium text-slate-800">{item.disease}</p>
+                </div>
+              </div>
+            )}
+          />
         </>
       )}
     </div>
