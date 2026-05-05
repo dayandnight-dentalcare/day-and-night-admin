@@ -97,10 +97,8 @@ export function Sidebar() {
       <div className="md:hidden flex h-16 w-full items-center justify-between bg-white border-b border-slate-200 px-4 shrink-0 relative z-40">
         <div className="flex items-center">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <button className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md">
-                <Menu className="h-6 w-6" />
-              </button>
+            <SheetTrigger className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md">
+              <Menu className="h-6 w-6" />
             </SheetTrigger>
             <SheetContent side="left" className="w-[75%] sm:w-[350px] p-0 bg-white">
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
