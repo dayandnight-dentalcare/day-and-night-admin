@@ -137,12 +137,14 @@ export default function BookingsPage() {
       cell: (item) =>
         item.slot_date ? (
           <span className="text-slate-600">
-            {new Date(item.slot_date).toLocaleDateString("en-IN", {
-              timeZone: "Asia/Kolkata",
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
+{(() => {
+  const [y, m, d] = item.slot_date.split('T')[0].split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+})()}
           </span>
         ) : (
           <span className="text-slate-400 italic text-sm">TBD</span>
@@ -230,14 +232,10 @@ export default function BookingsPage() {
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
                 <div className="flex items-center text-sm text-slate-600">
                   <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                  {item.slot_date
-                    ? new Date(item.slot_date).toLocaleDateString("en-IN", {
-                        timeZone: "Asia/Kolkata",
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "TBD"}
+{item.slot_date ? (() => {
+  const [y, m, d] = item.slot_date.split('T')[0].split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' });
+})() : "TBD"}
                 </div>
                 <div className="flex items-center text-sm text-slate-600">
                   <Clock className="w-4 h-4 mr-2 text-slate-400" />
@@ -284,7 +282,7 @@ export default function BookingsPage() {
               <StatusBadge status={selectedBooking.status} />
             </div>
 
-            {/* Date + Time */}
+{/* Date + Time section in SlideOver */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <div className="text-xs text-slate-500 mb-1 flex items-center">
@@ -292,18 +290,18 @@ export default function BookingsPage() {
                 </div>
                 <div className="font-medium text-slate-900">
                   {selectedBooking.slot_date
-                    ? new Date(selectedBooking.slot_date).toLocaleDateString(
-                        "en-IN",
-                        {
-                          timeZone: "Asia/Kolkata",
+                    ? (() => {
+                        const [y, m, d] = selectedBooking.slot_date.split('T')[0].split('-').map(Number);
+                        return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
                           weekday: "short",
                           day: "numeric",
                           month: "long",
-                        }
-                      )
+                        });
+                      })()
                     : "Not selected yet"}
                 </div>
               </div>
+
               <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <div className="text-xs text-slate-500 mb-1 flex items-center">
                   <Clock className="w-3.5 h-3.5 mr-1" /> Time
