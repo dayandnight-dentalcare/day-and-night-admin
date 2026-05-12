@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { adminFetch } from "@/lib/api";
 import { Toolbar } from "@/components/shared/Toolbar";
 import { DataTable, Column } from "@/components/shared/DataTable";
 import { SummaryCard } from "@/components/shared/SummaryCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Users, CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface DeliveryRow {
   id: number;
@@ -21,16 +21,16 @@ interface DeliveryRow {
 function DeliveryStatusContent() {
   const searchParams = useSearchParams();
   const campaignId = searchParams.get("campaignId");
+  const router = useRouter();
 
   const [rows, setRows] = useState<DeliveryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
+useEffect(() => {
     if (!campaignId) {
-      setError("No campaign ID provided.");
-      setLoading(false);
+      router.push("/dashboard/campaign/history"); // <-- ADD THIS REDIRECT
       return;
     }
 
@@ -38,7 +38,7 @@ function DeliveryStatusContent() {
       .then((data) => setRows(data.rows))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [campaignId]);
+  }, [campaignId, router]);
 
   const filtered = rows.filter(
     (r) =>

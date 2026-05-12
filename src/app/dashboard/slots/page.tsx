@@ -121,12 +121,13 @@ export default function SlotManagerPage() {
   const availableCount = slots.filter((s) => !s.is_booked).length;
   const bookedCount = slots.filter((s) => s.is_booked).length;
 
-  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+const [y, m, d] = date.split('-').map(Number);
+const formattedDate = new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
   return (
     <div className="space-y-6">

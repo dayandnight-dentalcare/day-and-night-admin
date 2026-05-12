@@ -23,7 +23,6 @@ const navigation = [
   { name: "Slot Manager", href: "/dashboard/slots", icon: Clock },
   { name: "Upload Campaign", href: "/dashboard/campaign/upload", icon: UploadCloud },
   { name: "Campaign History", href: "/dashboard/campaign/history", icon: History },
-  { name: "Delivery Status", href: "/dashboard/campaign/delivery", icon: Send },
 ];
 
 export function Sidebar() {
