@@ -274,20 +274,20 @@ export default function PatientsPage() {
             )}
 
             {/* Patient header */}
-            <div className="flex items-center gap-4 pb-6 border-b">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-4 md:pb-6 border-b">
               <div className="h-14 w-14 bg-primary/10 rounded-full flex items-center justify-center text-primary text-xl font-bold shrink-0">
                 {selectedPatient.name.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-slate-900 truncate">
                   {selectedPatient.name}
                 </h3>
                 <div className="flex items-center text-sm text-slate-500 mt-0.5">
-                  <Phone className="w-3.5 h-3.5 mr-1.5" />
-                  {selectedPatient.phone}
+                  <Phone className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                  <span className="truncate">{selectedPatient.phone}</span>
                 </div>
                 {selectedPatient.email && (
-                  <p className="text-sm text-slate-400 mt-0.5">
+                  <p className="text-sm text-slate-400 mt-0.5 truncate">
                     {selectedPatient.email}
                   </p>
                 )}
@@ -295,7 +295,7 @@ export default function PatientsPage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
                 <p className="text-xs text-slate-500 mb-1">Total Bookings</p>
                 <p className="text-2xl font-bold text-slate-900">
@@ -340,7 +340,7 @@ export default function PatientsPage() {
                       key={h.appointment_id}
                       className="p-3 bg-white border border-slate-100 rounded-xl shadow-sm"
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                         <span className="text-xs text-slate-400">
                           {h.slot_date
                             ? new Date(h.slot_date).toLocaleDateString(
@@ -362,9 +362,11 @@ export default function PatientsPage() {
                             </span>
                           )}
                         </span>
-                      <StatusBadge 
-  status={(h.status.charAt(0).toUpperCase() + h.status.slice(1)) as BadgeStatus} 
-/>
+                        <div className="shrink-0">
+                          <StatusBadge 
+                            status={(h.status.charAt(0).toUpperCase() + h.status.slice(1)) as BadgeStatus} 
+                          />
+                        </div>
                       </div>
                       <p className="text-sm font-medium text-slate-800">
                         {h.reason ?? "No reason recorded"}
@@ -379,7 +381,7 @@ export default function PatientsPage() {
             <div className="pt-4 border-t">
               <Button
                 className={cn(
-                  "w-full justify-start border font-medium h-12 md:h-10 text-base md:text-sm",
+                  "w-full justify-start border font-medium h-auto min-h-[3rem] md:min-h-[2.5rem] py-2 px-3 text-sm whitespace-normal text-left",
                   selectedPatient.do_not_contact
                     ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
                     : "bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200"

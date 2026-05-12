@@ -266,26 +266,28 @@ export default function BookingsPage() {
         {selectedBooking && (
           <div className="space-y-6">
             {/* Patient header */}
-            <div className="flex items-center justify-between pb-4 border-b">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
+            <div className="flex items-start justify-between gap-3 pb-4 border-b">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-slate-900 truncate">
                   {selectedBooking.patient_name}
                 </h3>
                 <div className="flex items-center text-sm text-slate-500 mt-1">
-                  <Phone className="w-3.5 h-3.5 mr-1.5" />
-                  {selectedBooking.patient_phone}
+                  <Phone className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                  <span className="truncate">{selectedBooking.patient_phone}</span>
                 </div>
                 {selectedBooking.patient_email && (
-                  <p className="text-sm text-slate-400 mt-0.5">
+                  <p className="text-sm text-slate-400 mt-0.5 truncate">
                     {selectedBooking.patient_email}
                   </p>
                 )}
               </div>
-              <StatusBadge status={selectedBooking.status} />
+              <div className="shrink-0 mt-1">
+                <StatusBadge status={selectedBooking.status} />
+              </div>
             </div>
 
             {/* Date + Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <div className="text-xs text-slate-500 mb-1 flex items-center">
                   <Calendar className="w-3.5 h-3.5 mr-1" /> Date

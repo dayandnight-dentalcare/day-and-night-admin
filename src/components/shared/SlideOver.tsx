@@ -24,10 +24,10 @@ export function SlideOver({
 }: SlideOverProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md md:max-w-lg overflow-y-auto bg-slate-50">
-        <SheetHeader className="mb-6">
+      <SheetContent className="w-[92vw] max-w-[92vw] sm:w-auto sm:max-w-md md:max-w-lg overflow-y-auto overflow-x-hidden bg-slate-50 p-4 md:p-6">
+        <SheetHeader className="p-0 mb-4 md:mb-6">
           <SheetTitle className="text-xl font-bold text-slate-900">{title}</SheetTitle>
-          {description && <SheetDescription>{description}</SheetDescription>}
+          {description && <SheetDescription className="text-sm">{description}</SheetDescription>}
         </SheetHeader>
         <div className="flex flex-col space-y-6">
           {children}
