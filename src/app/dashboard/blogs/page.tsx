@@ -9,6 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SlideOver } from "@/components/shared/SlideOver";
 import { Loader2, Trash2, Plus, UploadCloud, FileText } from "lucide-react";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css"; 
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 export default function BlogsManagerPage() {
   const [blogs, setBlogs] = useState<any[]>([]);
@@ -148,10 +152,17 @@ export default function BlogsManagerPage() {
           <div className="space-y-2"><Label>Category</Label><Input required value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Treatments, Guide" /></div>
           <div className="space-y-2"><Label>Short Excerpt</Label><textarea required value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={3} className="w-full rounded-md border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="A brief summary for the blog card..." /></div>
           
-          <div className="space-y-2">
-            <Label>Content (HTML format)</Label>
-            <p className="text-xs text-slate-500 mb-2">Paste your HTML formatted content here (like &lt;h2&gt; and &lt;p&gt; tags).</p>
-            <textarea required value={contentHtml} onChange={(e) => setContentHtml(e.target.value)} rows={15} className="w-full rounded-md border border-slate-200 p-3 text-sm font-mono bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary" />
+<div className="space-y-2 pb-10">
+            <Label>Blog Content</Label>
+            <p className="text-xs text-slate-500 mb-2">Write your blog post here. Use the toolbar to add headers, bold text, and lists.</p>
+            <div className="bg-white">
+              <ReactQuill 
+                theme="snow" 
+                value={contentHtml} 
+                onChange={setContentHtml} 
+                className="h-64 mb-12"
+              />
+            </div>
           </div>
 
           <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-primary text-white">
