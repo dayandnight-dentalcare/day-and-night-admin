@@ -114,7 +114,7 @@ export default function GalleryManagerPage() {
           </div>
           <h3 className="text-lg font-bold text-slate-900 mb-2">Upload New Image</h3>
           <p className="text-sm text-slate-500 max-w-md mb-6">
-            Supported formats: .PNG, .JPG, .JPEG, .WEBP. High-quality images look best on the frontend.
+            Supported formats: .PNG, .JPG, .JPEG, .WEBP. High-quality images look best on the website.
           </p>
           
           <input
