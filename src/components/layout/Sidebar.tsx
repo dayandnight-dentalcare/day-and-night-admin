@@ -12,7 +12,8 @@ import {
   Send, 
   LogOut,
   Stethoscope,
-  Menu
+  Menu,
+  Image as ImageIcon 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Bookings", href: "/dashboard/bookings", icon: Calendar },
   { name: "Patients", href: "/dashboard/patients", icon: Users },
   { name: "Slot Manager", href: "/dashboard/slots", icon: Clock },
+  { name: "Gallery", href: "/dashboard/gallery", icon: ImageIcon }, // <-- ADD THIS
   { name: "Upload Campaign", href: "/dashboard/campaign/upload", icon: UploadCloud },
   { name: "Campaign History", href: "/dashboard/campaign/history", icon: History },
 ];
