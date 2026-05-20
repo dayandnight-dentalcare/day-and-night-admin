@@ -13,11 +13,12 @@ import {
   LogOut,
   Stethoscope,
   Menu,
-  Image as ImageIcon 
+  Image as ImageIcon ,
+  FileText,
+  MonitorPlay
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { FileText } from "lucide-react"; // Add to imports
 
 const navigation = [
   { name: "Bookings", href: "/dashboard/bookings", icon: Calendar },
@@ -25,7 +26,8 @@ const navigation = [
   { name: "Slot Manager", href: "/dashboard/slots", icon: Clock },
   { name: "Upload Campaign", href: "/dashboard/campaign/upload", icon: UploadCloud },
   { name: "Campaign History", href: "/dashboard/campaign/history", icon: History },
-  { name: "Gallery", href: "/dashboard/gallery", icon: ImageIcon }, // <-- ADD THIS
+  { name: "Home Carousel", href: "/dashboard/hero", icon: MonitorPlay },
+  { name: "Gallery", href: "/dashboard/gallery", icon: ImageIcon },
   { name: "Blogs", href: "/dashboard/blogs", icon: FileText },
 ];
 
