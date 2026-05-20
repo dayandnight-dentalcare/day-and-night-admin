@@ -48,6 +48,7 @@ export default function BlogsManagerPage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitle(val);
+    // This auto-generates the slug perfectly based on the title
     setSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
   };
 
@@ -144,8 +145,22 @@ export default function BlogsManagerPage() {
                   <input type="file" accept="image/*" ref={fileInputRef} onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
                 </div>
 
-                <div className="space-y-2"><Label className="font-bold">Title</Label><Input required value={title} onChange={handleTitleChange} placeholder="e.g. Painless Root Canals" /></div>
-                <div className="space-y-2"><Label className="font-bold">URL Slug</Label><Input required value={slug} onChange={(e) => setSlug(e.target.value)} className="bg-slate-50 font-mono text-sm" /></div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Title</Label>
+                  <Input required value={title} onChange={handleTitleChange} placeholder="e.g. Painless Root Canals" />
+                </div>
+                
+                {/* SLUG INPUT: Now Read-Only and styled to look locked */}
+                <div className="space-y-2">
+                  <Label className="font-bold">URL Slug</Label>
+                  <Input 
+                    readOnly 
+                    value={slug} 
+                    placeholder="Auto-generated from title"
+                    className="bg-slate-100 font-mono text-sm text-slate-500 cursor-not-allowed focus-visible:ring-0 border-slate-200" 
+                  />
+                </div>
+
                 <div className="space-y-2"><Label className="font-bold">Category</Label><Input required value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Treatments" /></div>
                 <div className="space-y-2"><Label className="font-bold">Short Excerpt</Label><textarea required value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={4} className="w-full rounded-md border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="A brief summary..." /></div>
               </CardContent>
@@ -161,12 +176,12 @@ export default function BlogsManagerPage() {
                   <p className="text-sm text-slate-500 mt-1">Use the formatting tools below to style your article.</p>
                 </div>
                 <div className="flex-1 bg-white p-6">
-                  {/* Notice the height is vastly increased here */}
+                  {/* Tailwind Warning Fixed: Changed h-[500px] to h-125 */}
                   <ReactQuill 
                     theme="snow" 
                     value={contentHtml} 
                     onChange={setContentHtml} 
-                    className="h-[500px] mb-12"
+                    className="h-125 mb-12"
                   />
                 </div>
               </CardContent>
@@ -200,7 +215,8 @@ export default function BlogsManagerPage() {
                 <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2">{post.title}</h3>
                 <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{post.excerpt}</p>
                 <div className="flex justify-between items-center border-t pt-4 mt-auto">
-                  <span className="text-xs text-slate-400 max-w-[150px] truncate">/{post.slug}</span>
+                  {/* Tailwind Warning Fixed: Changed max-w-[150px] to max-w-37.5 */}
+                  <span className="text-xs text-slate-400 max-w-37.5 truncate">/{post.slug}</span>
                   <button onClick={() => handleDelete(post.id, post.image_url)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-full transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
